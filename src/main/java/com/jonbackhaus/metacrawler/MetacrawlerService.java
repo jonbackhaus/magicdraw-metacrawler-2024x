@@ -1,7 +1,6 @@
 package com.jonbackhaus.metacrawler;
 
 import com.nomagic.actions.ActionsCategory;
-import com.nomagic.actions.NMAction;
 import com.nomagic.magicdraw.uml.RepresentationTextCreator;
 import com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Element;
 import com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Property;

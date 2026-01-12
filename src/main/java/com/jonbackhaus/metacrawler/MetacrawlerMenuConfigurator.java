@@ -7,8 +7,6 @@ import com.nomagic.magicdraw.ui.browser.Tree;
 import com.nomagic.magicdraw.ui.browser.Node;
 import com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Element;
 
-import java.util.List;
-
 public class MetacrawlerMenuConfigurator implements BrowserContextAMConfigurator {
 
     @Override

@@ -1,0 +1,13 @@
+<plugin
+        id="com.jonbackhaus.metacrawler"
+        name="Metacrawler Plugin"
+        version="1.0"
+        provider-name="Jonathan Backhaus"
+        class="com.jonbackhaus.metacrawler.MetacrawlerPlugin">
+    <runtime>
+        <library name="magicdraw-metacrawler-1.0-SNAPSHOT.jar"/>
+    </runtime>
+    <requires>
+        <api version="1.0"/>
+    </requires>
+</plugin>

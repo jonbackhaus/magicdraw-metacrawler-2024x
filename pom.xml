@@ -87,6 +87,13 @@
             <systemPath>${magicdraw.install.dir}/lib/org.eclipse.emf.common-2.40.0.jar</systemPath>
         </dependency>
         <dependency>
+            <groupId>org.omg.mof</groupId>
+            <artifactId>cmof</artifactId>
+            <version>1.4</version>
+            <scope>system</scope>
+            <systemPath>${magicdraw.install.dir}/lib/cmof-1.4.jar</systemPath>
+        </dependency>
+        <dependency>
             <groupId>javax.jmi</groupId>
             <artifactId>jmi</artifactId>
             <version>1.0</version>

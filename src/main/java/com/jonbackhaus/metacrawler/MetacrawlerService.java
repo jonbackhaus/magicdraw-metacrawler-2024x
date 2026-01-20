@@ -1,12 +1,14 @@
 package com.jonbackhaus.metacrawler;
 
 import com.nomagic.actions.ActionsCategory;
-import com.nomagic.actions.NMAction;
 import com.nomagic.magicdraw.uml.RepresentationTextCreator;
 import com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Element;
-import com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Property;
 import com.nomagic.magicdraw.core.Application;
 import javax.jmi.reflect.RefObject;
+import org.omg.mof.model.MofAttribute;
+import org.omg.mof.model.Reference;
+import org.omg.mof.model.ModelElement;
+import org.omg.mof.model.Namespace;
 
 import java.util.*;
 
@@ -20,20 +22,22 @@ public class MetacrawlerService {
 
         log("Populating menu for: " + RepresentationTextCreator.getRepresentedText(element) + " at depth " + depth);
 
-        List<Property> properties = getMetachainProperties(element);
-        log("Found " + properties.size() + " properties for " + element.getHumanType());
+        Map<String, ModelElement> propertyMap = getMetachainProperties(element);
+        log("Found " + propertyMap.size() + " properties for " + element.getHumanType());
 
-        properties.sort(Comparator.comparing(MetacrawlerService::getPropertyLabel));
+        List<String> sortedNames = new ArrayList<>(propertyMap.keySet());
+        Collections.sort(sortedNames);
 
-        for (Property property : properties) {
-            List<Element> targets = getTargetElements(element, property);
+        for (String propName : sortedNames) {
+            ModelElement propDef = propertyMap.get(propName);
+            List<Element> targets = getTargetElements(element, propName);
             if (targets.isEmpty())
                 continue;
 
-            String label = getPropertyLabel(property);
+            String label = getPropertyLabel(propDef);
             log("Property " + label + " has " + targets.size() + " targets");
 
-            ActionsCategory propertyCategory = new ActionsCategory(property.getID(), label);
+            ActionsCategory propertyCategory = new ActionsCategory(propDef.refMofId(), label);
             propertyCategory.setNested(true);
 
             for (Element target : targets) {
@@ -52,50 +56,60 @@ public class MetacrawlerService {
         }
     }
 
-    private static String getPropertyLabel(Property property) {
-        String friendlyName = property.getName();
-        if (friendlyName == null || friendlyName.isEmpty()) {
-            friendlyName = property.getHumanName();
+    private static String getPropertyLabel(ModelElement propDef) {
+        String name = "";
+        try {
+            name = propDef.getName();
+        } catch (Exception e) {
         }
-        return String.format("%s (%s)", friendlyName, property.getName());
+
+        // In MOF, we don't have a direct "humanName" but we can use the technical name
+        // MagicDraw often adds decorations but technical name is reliable for Metachain
+        return name;
     }
 
-    private static List<Property> getMetachainProperties(Element element) {
-        List<Property> props = new ArrayList<>();
+    private static Map<String, ModelElement> getMetachainProperties(Element element) {
+        Map<String, ModelElement> propertyMap = new HashMap<>();
         if (element instanceof RefObject) {
             RefObject metaObject = ((RefObject) element).refMetaObject();
-            log("MetaObject type: " + metaObject.getClass().getName());
-
-            // In MD, the metaclass often implements the Kernel.Class interface
-            if (metaObject instanceof com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Class) {
-                com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Class metaclass = (com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Class) metaObject;
-
-                // Get features (includes attributes/properties)
-                // We should probably look at all features that are Properties
-                Collection<?> features = metaclass.getFeature();
-                for (Object feature : features) {
-                    if (feature instanceof Property) {
-                        props.add((Property) feature);
-                    }
-                }
-
-                // Also check inherited features? metaclass.getFeature() might not be enough.
-                // But for now let's see why it's empty.
-            } else {
-                log("MetaObject is NOT a Kernel.Class");
+            if (metaObject instanceof org.omg.mof.model.Class) {
+                collectProperties((org.omg.mof.model.Class) metaObject, propertyMap, new HashSet<>());
             }
-        } else {
-            log("Element is NOT a RefObject");
         }
-        return props;
+        return propertyMap;
     }
 
-    private static List<Element> getTargetElements(Element element, Property property) {
+    private static void collectProperties(org.omg.mof.model.Class mofClass, Map<String, ModelElement> propertyMap,
+            Set<org.omg.mof.model.Class> visited) {
+        if (mofClass == null || !visited.add(mofClass))
+            return;
+
+        try {
+            for (Object content : mofClass.getContents()) {
+                if (content instanceof MofAttribute || content instanceof Reference) {
+                    ModelElement me = (ModelElement) content;
+                    if (!propertyMap.containsKey(me.getName())) {
+                        propertyMap.put(me.getName(), me);
+                    }
+                }
+            }
+
+            // Collect from supertypes
+            for (Object supertype : mofClass.getSupertypes()) {
+                if (supertype instanceof org.omg.mof.model.Class) {
+                    collectProperties((org.omg.mof.model.Class) supertype, propertyMap, visited);
+                }
+            }
+        } catch (Exception e) {
+            log("Error collecting properties from " + mofClass + ": " + e.getMessage());
+        }
+    }
+
+    private static List<Element> getTargetElements(Element element, String propertyName) {
         List<Element> targets = new ArrayList<>();
         if (element instanceof RefObject) {
             try {
-                // Try to get by property name
-                Object value = ((RefObject) element).refGetValue(property.getName());
+                Object value = ((RefObject) element).refGetValue(propertyName);
                 if (value instanceof Element) {
                     targets.add((Element) value);
                 } else if (value instanceof Collection) {
@@ -106,7 +120,7 @@ public class MetacrawlerService {
                     }
                 }
             } catch (Exception e) {
-                log("Error getting values for property " + property.getName() + ": " + e.getMessage());
+                // Ignore
             }
         }
         return targets;

@@ -3,10 +3,13 @@
 # Configuration
 VERSION="1.0"
 PLUGIN_ID="com.jonbackhaus.metacrawler"
+PLUGIN_UID="79832" # arbitrary but needs to be unique
 JAR_NAME="magicdraw-metacrawler-1.0-SNAPSHOT.jar"
 DIST_DIR="dist"
+DIST_DATE=$(date +%Y-%m-%d)
 TEMP_DIR="dist/temp"
 ZIP_NAME="metacrawler-plugin-v$VERSION.zip"
+MDR_NAME="MDR_Plugin_Metacrawler_v${VERSION}_descriptor.xml"
 
 echo "Building Metacrawler Distribution Bundle v$VERSION..."
 
@@ -30,18 +33,23 @@ cp "src/main/resources/plugin.xml" "$TEMP_DIR/plugins/$PLUGIN_ID/"
 
 # 4. Generate Resource Manager Descriptor
 # Updated with required categorization tags for MagicDraw Resource Manager
-cat <<EOF > "$TEMP_DIR/data/resourcemanager/MDK_Metacrawler_v${VERSION}_resource.xml"
-<?xml version="1.0" encoding="UTF-8"?>
-<resourceDescriptor>
-    <id>$PLUGIN_ID</id>
-    <name>Metacrawler Plugin</name>
-    <version>$VERSION</version>
-    <provider-name>Jonathan Backhaus</provider-name>
-    <provider-url>https://github.com/jonbackhaus/magicdraw-metacrawler</provider-url>
-    <description>Recursive context menu for interactive metachain crawling in MagicDraw.</description>
-    <type>Plugin</type>
-    <category>Plugins</category>
-    <comment>High-performance interactive metachain crawling tool for MagicDraw 2022x.</comment>
+cat <<EOF > "$TEMP_DIR/data/resourcemanager/$MDR_NAME"
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<resourceDescriptor critical="false" date="$DIST_DATE" description="Recursive context menu for interactive metachain crawling in MagicDraw." id="$PLUGIN_UID" name="Metacrawler Plugin" mdVersionMax="higher" mxVersionMin="17.0" restartMagicdraw="true" type="Plugin">
+    <version human="$VERSION" internal="1" resource="10" />
+    <provider name="Jonathan Backhaus" homePage="https://github.com/jonbackhaus/magicdraw-metacrawler" />
+    <edition>Reader</edition>
+    <edition>Community</edition>
+    <edition>Standard</edition>
+    <edition>Professional Java</edition>
+    <edition>Professional C++</edition>
+    <edition>Professional</edition>
+    <edition>Architect</edition>
+    <edition>Enterprise</edition>
+    <installation>
+        <file from="plugins/$PLUGIN_ID/*.*" to="plugins/$PLUGIN_ID/*.*" />
+        <file from="data/resourcemanager/$MDR_NAME" to="data/resourcemanager/$MDR_NAME" />
+    </installation>
 </resourceDescriptor>
 EOF
 

@@ -18,6 +18,7 @@ public class MetacrawlerService {
     private static final int MAX_DEPTH = 3;
 
     // Global cache for metamodel properties (once discovered, they don't change).
+    // Using unmodifiable lists to ensure thread-safety during iteration.
     private static final Map<String, List<ModelElement>> metamodelCache = new ConcurrentHashMap<>();
 
     /**
@@ -31,24 +32,14 @@ public class MetacrawlerService {
 
         // Prevent infinite loops in cycles, but allow traversing the same element at
         // different levels if needed.
-        // For a context menu, we usually want to avoid re-including an element that's
-        // already in the *ancestry* of this menu branch.
         String elementId = element.getID();
         if (visitedIds.contains(elementId))
             return;
 
         visitedIds.add(elementId);
 
+        // This returns a pre-sorted, unmodifiable list from the cache
         List<ModelElement> properties = getCachedMetamodelProperties(element);
-
-        // Sort properties by name
-        properties.sort(Comparator.comparing(p -> {
-            try {
-                return p.getName();
-            } catch (Exception e) {
-                return "";
-            }
-        }));
 
         for (ModelElement propDef : properties) {
             String propName = "";
@@ -98,7 +89,18 @@ public class MetacrawlerService {
             if (metaObject instanceof org.omg.mof.model.Class) {
                 collectProperties((org.omg.mof.model.Class) metaObject, props, new HashSet<>());
             }
-            return props;
+
+            // Sort once before caching
+            props.sort(Comparator.comparing(p -> {
+                try {
+                    return p.getName();
+                } catch (Exception e) {
+                    return "";
+                }
+            }));
+
+            // Return as unmodifiable list to prevent ConcurrentModificationException
+            return Collections.unmodifiableList(props);
         });
     }
 

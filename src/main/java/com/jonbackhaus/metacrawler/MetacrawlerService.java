@@ -14,25 +14,35 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MetacrawlerService {
 
-    // LIMIT DEPTH to 1 to prevent UI locking and enable truly "interactive"
-    // step-by-step crawling.
-    // Deep recursion in context menus is non-performant.
-    private static final int MAX_DEPTH = 1;
+    // Balancing depth with performance. 3-4 levels is usually enough for a
+    // hover-menu.
+    private static final int MAX_DEPTH = 3;
 
-    // Cache for properties discovered per MetaClass MOF ID to avoid repeated
-    // reflexive lookups.
-    private static final Map<String, List<ModelElement>> metaclassPropertyCache = new ConcurrentHashMap<>();
+    // Global cache for metamodel properties (once discovered, they don't change).
+    private static final Map<String, List<ModelElement>> metamodelCache = new ConcurrentHashMap<>();
 
-    public static void populatePropertyMenu(ActionsCategory parentCategory, Element element, int depth) {
-        if (depth >= MAX_DEPTH)
+    /**
+     * Populates the Metacrawler menu recursively.
+     * Structure: Element -> Properties -> Targets -> Properties -> Targets...
+     */
+    public static void populatePropertyMenu(ActionsCategory parentCategory, Element element, int depth,
+            Set<String> visitedIds) {
+        if (depth >= MAX_DEPTH || element == null)
             return;
 
-        log("Populating menu for: " + RepresentationTextCreator.getRepresentedText(element) + " at depth " + depth);
+        // Prevent infinite loops in cycles, but allow traversing the same element at
+        // different levels if needed.
+        // For a context menu, we usually want to avoid re-including an element that's
+        // already in the *ancestry* of this menu branch.
+        String elementId = element.getID();
+        if (visitedIds.contains(elementId))
+            return;
 
-        List<ModelElement> properties = getCachedProperties(element);
-        log("Discovered " + properties.size() + " metachain properties for " + element.getHumanType());
+        visitedIds.add(elementId);
 
-        // We sort them for readability
+        List<ModelElement> properties = getCachedMetamodelProperties(element);
+
+        // Sort properties by name
         properties.sort(Comparator.comparing(p -> {
             try {
                 return p.getName();
@@ -53,37 +63,41 @@ public class MetacrawlerService {
             if (targets.isEmpty())
                 continue;
 
+            // Property Submenu
             ActionsCategory propertyCategory = new ActionsCategory(propDef.refMofId(), propName);
             propertyCategory.setNested(true);
 
             for (Element target : targets) {
                 String targetLabel = RepresentationTextCreator.getRepresentedText(target);
 
-                // Add an action to select this target
-                MetacrawlerAction navigationAction = new MetacrawlerAction(target, targetLabel);
-                propertyCategory.addAction(navigationAction);
+                // Target Submenu (to allow further recursion on hover)
+                ActionsCategory targetCategory = new ActionsCategory(target.getID(), targetLabel);
+                targetCategory.setNested(true);
 
-                // We DON'T recurse deeply here anymore to prevent UI hangs.
-                // The user "crawls" by selecting the target and then right-clicking it.
+                // First action: Navigate to this element
+                targetCategory.addAction(new MetacrawlerAction(target, "➡️ Select: " + targetLabel));
+
+                // Recurse: Show properties of this target
+                populatePropertyMenu(targetCategory, target, depth + 1, new HashSet<>(visitedIds));
+
+                propertyCategory.addAction(targetCategory);
             }
 
             parentCategory.addAction(propertyCategory);
         }
     }
 
-    private static List<ModelElement> getCachedProperties(Element element) {
+    private static List<ModelElement> getCachedMetamodelProperties(Element element) {
         if (!(element instanceof RefObject))
             return Collections.emptyList();
 
         RefObject metaObject = ((RefObject) element).refMetaObject();
         String mofId = metaObject.refMofId();
 
-        return metaclassPropertyCache.computeIfAbsent(mofId, id -> {
+        return metamodelCache.computeIfAbsent(mofId, id -> {
             List<ModelElement> props = new ArrayList<>();
             if (metaObject instanceof org.omg.mof.model.Class) {
-                org.omg.mof.model.Class mofClass = (org.omg.mof.model.Class) metaObject;
-                Set<org.omg.mof.model.Class> visited = new HashSet<>();
-                collectProperties(mofClass, props, visited);
+                collectProperties((org.omg.mof.model.Class) metaObject, props, new HashSet<>());
             }
             return props;
         });
@@ -95,21 +109,17 @@ public class MetacrawlerService {
             return;
 
         try {
-            // Get immediate contents
             for (Object content : mofClass.getContents()) {
                 if (content instanceof MofAttribute || content instanceof Reference) {
                     props.add((ModelElement) content);
                 }
             }
-
-            // Collect from supertypes
             for (Object supertype : mofClass.getSupertypes()) {
                 if (supertype instanceof org.omg.mof.model.Class) {
                     collectProperties((org.omg.mof.model.Class) supertype, props, visited);
                 }
             }
         } catch (Exception e) {
-            log("Error collecting properties: " + e.getMessage());
         }
     }
 
@@ -128,14 +138,12 @@ public class MetacrawlerService {
                     }
                 }
             } catch (Exception e) {
-                // Property might not exist on this specific instance or other JMI error
             }
         }
         return targets;
     }
 
     private static void log(String message) {
-        Application.getInstance().getGUILog().log("[Metacrawler] " + message);
-        System.out.println("[Metacrawler] " + message);
+        // System.out.println("[Metacrawler] " + message);
     }
 }

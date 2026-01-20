@@ -18,7 +18,6 @@ if [ $? -ne 0 ]; then
 fi
 
 # 2. Setup folder structure
-# Ensure dist directory exists and is empty except for what we are about to create
 mkdir -p "$DIST_DIR"
 rm -rf "$DIST_DIR"/*
 
@@ -30,6 +29,7 @@ cp "target/$JAR_NAME" "$TEMP_DIR/plugins/$PLUGIN_ID/"
 cp "src/main/resources/plugin.xml" "$TEMP_DIR/plugins/$PLUGIN_ID/"
 
 # 4. Generate Resource Manager Descriptor
+# Updated with required categorization tags for MagicDraw Resource Manager
 cat <<EOF > "$TEMP_DIR/data/resourcemanager/MDK_Metacrawler_v${VERSION}_resource.xml"
 <?xml version="1.0" encoding="UTF-8"?>
 <resourceDescriptor>
@@ -37,7 +37,11 @@ cat <<EOF > "$TEMP_DIR/data/resourcemanager/MDK_Metacrawler_v${VERSION}_resource
     <name>Metacrawler Plugin</name>
     <version>$VERSION</version>
     <provider-name>Jonathan Backhaus</provider-name>
+    <provider-url>https://github.com/jonbackhaus/magicdraw-metacrawler</provider-url>
     <description>Recursive context menu for interactive metachain crawling in MagicDraw.</description>
+    <type>Plugin</type>
+    <category>Plugins</category>
+    <comment>High-performance interactive metachain crawling tool for MagicDraw 2022x.</comment>
 </resourceDescriptor>
 EOF
 

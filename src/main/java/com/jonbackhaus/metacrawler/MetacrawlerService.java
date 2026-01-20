@@ -3,7 +3,6 @@ package com.jonbackhaus.metacrawler;
 import com.nomagic.actions.ActionsCategory;
 import com.nomagic.magicdraw.uml.RepresentationTextCreator;
 import com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Element;
-import com.nomagic.magicdraw.core.Application;
 import javax.jmi.reflect.RefObject;
 import org.omg.mof.model.MofAttribute;
 import org.omg.mof.model.Reference;
@@ -141,9 +140,5 @@ public class MetacrawlerService {
             }
         }
         return targets;
-    }
-
-    private static void log(String message) {
-        // System.out.println("[Metacrawler] " + message);
     }
 }

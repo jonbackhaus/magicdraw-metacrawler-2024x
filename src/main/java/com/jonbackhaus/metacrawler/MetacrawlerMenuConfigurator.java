@@ -7,7 +7,6 @@ import com.nomagic.magicdraw.ui.browser.Tree;
 import com.nomagic.magicdraw.ui.browser.Node;
 import com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Element;
 import com.nomagic.magicdraw.core.Application;
-import java.util.HashSet;
 
 public class MetacrawlerMenuConfigurator implements BrowserContextAMConfigurator {
 
@@ -22,8 +21,8 @@ public class MetacrawlerMenuConfigurator implements BrowserContextAMConfigurator
             ActionsCategory metacrawlerCategory = new ActionsCategory("METACRAWLER", "Metacrawler");
             metacrawlerCategory.setNested(true);
 
-            // Build the recursive menu with initial depth 0 and empty visited set
-            MetacrawlerService.populatePropertyMenu(metacrawlerCategory, element, 0, new HashSet<String>());
+            // Build the non-recursive menu for maximum performance
+            MetacrawlerService.populatePropertyMenu(metacrawlerCategory, element);
 
             manager.addCategory(metacrawlerCategory);
         }

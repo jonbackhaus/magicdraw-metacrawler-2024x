@@ -13,33 +13,20 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MetacrawlerService {
 
-    // Balancing depth with performance. 3-4 levels is usually enough for a
-    // hover-menu.
-    private static final int MAX_DEPTH = 3;
-
     // Global cache for metamodel properties (once discovered, they don't change).
-    // Using unmodifiable lists to ensure thread-safety during iteration.
     private static final Map<String, List<ModelElement>> metamodelCache = new ConcurrentHashMap<>();
 
     /**
-     * Populates the Metacrawler menu recursively.
-     * Structure: Element -> Properties -> Targets -> Properties -> Targets...
+     * Populates the Metacrawler menu for the immediate next level only.
+     * Structure: Element -> Properties -> Target Elements (Actions)
      */
-    public static void populatePropertyMenu(ActionsCategory parentCategory, Element element, int depth,
-            Set<String> visitedIds) {
-        if (depth >= MAX_DEPTH || element == null)
+    public static void populatePropertyMenu(ActionsCategory parentCategory, Element element) {
+        if (element == null)
             return;
 
-        // Prevent infinite loops in cycles, but allow traversing the same element at
-        // different levels if needed.
-        String elementId = element.getID();
-        if (visitedIds.contains(elementId))
-            return;
-
-        visitedIds.add(elementId);
-
-        // This returns a pre-sorted, unmodifiable list from the cache
-        List<ModelElement> properties = getCachedMetamodelProperties(element);
+        // Get a snapshot of the properties to be absolutely safe from concurrent
+        // modification
+        List<ModelElement> properties = new ArrayList<>(getCachedMetamodelProperties(element));
 
         for (ModelElement propDef : properties) {
             String propName = "";
@@ -49,6 +36,7 @@ public class MetacrawlerService {
                 continue;
             }
 
+            // getTargetElements already returns a fresh ArrayList snapshot
             List<Element> targets = getTargetElements(element, propName);
             if (targets.isEmpty())
                 continue;
@@ -60,17 +48,8 @@ public class MetacrawlerService {
             for (Element target : targets) {
                 String targetLabel = RepresentationTextCreator.getRepresentedText(target);
 
-                // Target Submenu (to allow further recursion on hover)
-                ActionsCategory targetCategory = new ActionsCategory(target.getID(), targetLabel);
-                targetCategory.setNested(true);
-
-                // First action: Navigate to this element
-                targetCategory.addAction(new MetacrawlerAction(target, "➡️ Select: " + targetLabel));
-
-                // Recurse: Show properties of this target
-                populatePropertyMenu(targetCategory, target, depth + 1, new HashSet<>(visitedIds));
-
-                propertyCategory.addAction(targetCategory);
+                // Add action to select this target
+                propertyCategory.addAction(new MetacrawlerAction(target, targetLabel));
             }
 
             parentCategory.addAction(propertyCategory);
@@ -99,7 +78,7 @@ public class MetacrawlerService {
                 }
             }));
 
-            // Return as unmodifiable list to prevent ConcurrentModificationException
+            // Return as unmodifiable list
             return Collections.unmodifiableList(props);
         });
     }
@@ -110,12 +89,17 @@ public class MetacrawlerService {
             return;
 
         try {
-            for (Object content : mofClass.getContents()) {
+            // Take a snapshot of contents to avoid CMOD if metamodel changes
+            Object[] contents = mofClass.getContents().toArray();
+            for (Object content : contents) {
                 if (content instanceof MofAttribute || content instanceof Reference) {
                     props.add((ModelElement) content);
                 }
             }
-            for (Object supertype : mofClass.getSupertypes()) {
+
+            // Take a snapshot of supertypes
+            Object[] supertypes = mofClass.getSupertypes().toArray();
+            for (Object supertype : supertypes) {
                 if (supertype instanceof org.omg.mof.model.Class) {
                     collectProperties((org.omg.mof.model.Class) supertype, props, visited);
                 }
@@ -132,13 +116,20 @@ public class MetacrawlerService {
                 if (value instanceof Element) {
                     targets.add((Element) value);
                 } else if (value instanceof Collection) {
-                    for (Object item : (Collection<?>) value) {
+                    // CRITICAL: Snapshot the collection immediately to avoid
+                    // ConcurrentModificationException
+                    // MagicDraw's JMI collections are often "live" and can change in background
+                    // threads.
+                    Object[] items = ((Collection<?>) value).toArray();
+                    for (Object item : items) {
                         if (item instanceof Element) {
                             targets.add((Element) item);
                         }
                     }
                 }
             } catch (Exception e) {
+                // Return empty if property access fails or collection is modified during
+                // toArray
             }
         }
         return targets;

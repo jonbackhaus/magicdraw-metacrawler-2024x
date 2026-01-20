@@ -6,6 +6,7 @@ import com.nomagic.magicdraw.actions.BrowserContextAMConfigurator;
 import com.nomagic.magicdraw.ui.browser.Tree;
 import com.nomagic.magicdraw.ui.browser.Node;
 import com.nomagic.uml2.ext.magicdraw.classes.mdkernel.Element;
+import com.nomagic.magicdraw.core.Application;
 
 public class MetacrawlerMenuConfigurator implements BrowserContextAMConfigurator {
 
@@ -14,6 +15,8 @@ public class MetacrawlerMenuConfigurator implements BrowserContextAMConfigurator
         Node selectedNode = tree.getSelectedNode();
         if (selectedNode != null && selectedNode.getUserObject() instanceof Element) {
             Element element = (Element) selectedNode.getUserObject();
+
+            Application.getInstance().getGUILog().log("[Metacrawler] Configuring menu for " + element.getHumanName());
 
             ActionsCategory metacrawlerCategory = new ActionsCategory("METACRAWLER", "Metacrawler");
             metacrawlerCategory.setNested(true);

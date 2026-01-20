@@ -44,3 +44,6 @@ bin/
 *.mdsl
 *.mdzip.bak
 *.active
+
+# Distribution
+dist/

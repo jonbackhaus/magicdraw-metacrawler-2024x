@@ -8,13 +8,20 @@ import javax.jmi.reflect.RefObject;
 import org.omg.mof.model.MofAttribute;
 import org.omg.mof.model.Reference;
 import org.omg.mof.model.ModelElement;
-import org.omg.mof.model.Namespace;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MetacrawlerService {
 
-    private static final int MAX_DEPTH = 5;
+    // LIMIT DEPTH to 1 to prevent UI locking and enable truly "interactive"
+    // step-by-step crawling.
+    // Deep recursion in context menus is non-performant.
+    private static final int MAX_DEPTH = 1;
+
+    // Cache for properties discovered per MetaClass MOF ID to avoid repeated
+    // reflexive lookups.
+    private static final Map<String, List<ModelElement>> metaclassPropertyCache = new ConcurrentHashMap<>();
 
     public static void populatePropertyMenu(ActionsCategory parentCategory, Element element, int depth) {
         if (depth >= MAX_DEPTH)
@@ -22,86 +29,87 @@ public class MetacrawlerService {
 
         log("Populating menu for: " + RepresentationTextCreator.getRepresentedText(element) + " at depth " + depth);
 
-        Map<String, ModelElement> propertyMap = getMetachainProperties(element);
-        log("Found " + propertyMap.size() + " properties for " + element.getHumanType());
+        List<ModelElement> properties = getCachedProperties(element);
+        log("Discovered " + properties.size() + " metachain properties for " + element.getHumanType());
 
-        List<String> sortedNames = new ArrayList<>(propertyMap.keySet());
-        Collections.sort(sortedNames);
+        // We sort them for readability
+        properties.sort(Comparator.comparing(p -> {
+            try {
+                return p.getName();
+            } catch (Exception e) {
+                return "";
+            }
+        }));
 
-        for (String propName : sortedNames) {
-            ModelElement propDef = propertyMap.get(propName);
+        for (ModelElement propDef : properties) {
+            String propName = "";
+            try {
+                propName = propDef.getName();
+            } catch (Exception e) {
+                continue;
+            }
+
             List<Element> targets = getTargetElements(element, propName);
             if (targets.isEmpty())
                 continue;
 
-            String label = getPropertyLabel(propDef);
-            log("Property " + label + " has " + targets.size() + " targets");
-
-            ActionsCategory propertyCategory = new ActionsCategory(propDef.refMofId(), label);
+            ActionsCategory propertyCategory = new ActionsCategory(propDef.refMofId(), propName);
             propertyCategory.setNested(true);
 
             for (Element target : targets) {
                 String targetLabel = RepresentationTextCreator.getRepresentedText(target);
-                ActionsCategory targetCategory = new ActionsCategory(target.getID(), targetLabel);
-                targetCategory.setNested(true);
 
-                targetCategory.addAction(new MetacrawlerAction(target, targetLabel));
+                // Add an action to select this target
+                MetacrawlerAction navigationAction = new MetacrawlerAction(target, targetLabel);
+                propertyCategory.addAction(navigationAction);
 
-                populatePropertyMenu(targetCategory, target, depth + 1);
-
-                propertyCategory.addAction(targetCategory);
+                // We DON'T recurse deeply here anymore to prevent UI hangs.
+                // The user "crawls" by selecting the target and then right-clicking it.
             }
 
             parentCategory.addAction(propertyCategory);
         }
     }
 
-    private static String getPropertyLabel(ModelElement propDef) {
-        String name = "";
-        try {
-            name = propDef.getName();
-        } catch (Exception e) {
-        }
+    private static List<ModelElement> getCachedProperties(Element element) {
+        if (!(element instanceof RefObject))
+            return Collections.emptyList();
 
-        // In MOF, we don't have a direct "humanName" but we can use the technical name
-        // MagicDraw often adds decorations but technical name is reliable for Metachain
-        return name;
-    }
+        RefObject metaObject = ((RefObject) element).refMetaObject();
+        String mofId = metaObject.refMofId();
 
-    private static Map<String, ModelElement> getMetachainProperties(Element element) {
-        Map<String, ModelElement> propertyMap = new HashMap<>();
-        if (element instanceof RefObject) {
-            RefObject metaObject = ((RefObject) element).refMetaObject();
+        return metaclassPropertyCache.computeIfAbsent(mofId, id -> {
+            List<ModelElement> props = new ArrayList<>();
             if (metaObject instanceof org.omg.mof.model.Class) {
-                collectProperties((org.omg.mof.model.Class) metaObject, propertyMap, new HashSet<>());
+                org.omg.mof.model.Class mofClass = (org.omg.mof.model.Class) metaObject;
+                Set<org.omg.mof.model.Class> visited = new HashSet<>();
+                collectProperties(mofClass, props, visited);
             }
-        }
-        return propertyMap;
+            return props;
+        });
     }
 
-    private static void collectProperties(org.omg.mof.model.Class mofClass, Map<String, ModelElement> propertyMap,
+    private static void collectProperties(org.omg.mof.model.Class mofClass, List<ModelElement> props,
             Set<org.omg.mof.model.Class> visited) {
         if (mofClass == null || !visited.add(mofClass))
             return;
 
         try {
+            // Get immediate contents
             for (Object content : mofClass.getContents()) {
                 if (content instanceof MofAttribute || content instanceof Reference) {
-                    ModelElement me = (ModelElement) content;
-                    if (!propertyMap.containsKey(me.getName())) {
-                        propertyMap.put(me.getName(), me);
-                    }
+                    props.add((ModelElement) content);
                 }
             }
 
             // Collect from supertypes
             for (Object supertype : mofClass.getSupertypes()) {
                 if (supertype instanceof org.omg.mof.model.Class) {
-                    collectProperties((org.omg.mof.model.Class) supertype, propertyMap, visited);
+                    collectProperties((org.omg.mof.model.Class) supertype, props, visited);
                 }
             }
         } catch (Exception e) {
-            log("Error collecting properties from " + mofClass + ": " + e.getMessage());
+            log("Error collecting properties: " + e.getMessage());
         }
     }
 
@@ -120,7 +128,7 @@ public class MetacrawlerService {
                     }
                 }
             } catch (Exception e) {
-                // Ignore
+                // Property might not exist on this specific instance or other JMI error
             }
         }
         return targets;

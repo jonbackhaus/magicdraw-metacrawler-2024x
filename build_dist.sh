@@ -6,6 +6,7 @@ PLUGIN_ID="com.jonbackhaus.metacrawler"
 JAR_NAME="magicdraw-metacrawler-1.0-SNAPSHOT.jar"
 DIST_DIR="dist"
 TEMP_DIR="dist/temp"
+ZIP_NAME="metacrawler-plugin-v$VERSION.zip"
 
 echo "Building Metacrawler Distribution Bundle v$VERSION..."
 
@@ -17,7 +18,10 @@ if [ $? -ne 0 ]; then
 fi
 
 # 2. Setup folder structure
-rm -rf "$TEMP_DIR"
+# Ensure dist directory exists and is empty except for what we are about to create
+mkdir -p "$DIST_DIR"
+rm -rf "$DIST_DIR"/*
+
 mkdir -p "$TEMP_DIR/data/resourcemanager"
 mkdir -p "$TEMP_DIR/plugins/$PLUGIN_ID"
 
@@ -39,10 +43,12 @@ EOF
 
 # 5. Create Zip Bundle
 cd "$TEMP_DIR"
-zip -r "../../$DIST_DIR/metacrawler-plugin-v$VERSION.zip" .
+zip -r "../../$DIST_DIR/$ZIP_NAME" . > /dev/null
 cd ../..
 
 # 6. Cleanup
 rm -rf "$TEMP_DIR"
 
-echo "Distribution bundle created: $DIST_DIR/metacrawler-plugin-v$VERSION.zip"
+echo "Distribution bundle created: $DIST_DIR/$ZIP_NAME"
+echo "Contents of $DIST_DIR/:"
+ls -F "$DIST_DIR"

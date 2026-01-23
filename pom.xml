@@ -12,65 +12,59 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <magicdraw.install.dir>/Applications/MagicDraw 2022xR2 HF3</magicdraw.install.dir>
+        <magicdraw.install.dir>/Applications/MagicDraw 2024xR3</magicdraw.install.dir>
     </properties>
 
     <dependencies>
+        <!-- Core JAR replaces md_api.jar and md.jar in 2024x -->
         <dependency>
             <groupId>com.nomagic.magicdraw</groupId>
-            <artifactId>md_api</artifactId>
+            <artifactId>core</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${magicdraw.install.dir}/lib/md_api.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>com.nomagic.magicdraw</groupId>
-            <artifactId>md</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${magicdraw.install.dir}/lib/md.jar</systemPath>
+            <systemPath>${magicdraw.install.dir}/lib/core-2024.3.0-55-260588bf.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.nomagic.magicdraw</groupId>
             <artifactId>common_md</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${magicdraw.install.dir}/lib/common-2022.2.0-168-7c289b26.jar</systemPath>
+            <systemPath>${magicdraw.install.dir}/lib/common-2024.3.0-55-260588bf.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.nomagic.magicdraw</groupId>
             <artifactId>uml2</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${magicdraw.install.dir}/lib/com.nomagic.magicdraw.uml2-2022.2.0-168-7c289b26.jar</systemPath>
+            <systemPath>${magicdraw.install.dir}/lib/com.nomagic.magicdraw.uml2-2024.3.0-55-260588bf.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.nomagic.magicdraw</groupId>
             <artifactId>modeling</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${magicdraw.install.dir}/lib/com.nomagic.magicdraw.modeling-2022.2.0-168-7c289b26.jar</systemPath>
+            <systemPath>${magicdraw.install.dir}/lib/com.nomagic.magicdraw.modeling-2024.3.0-55-260588bf.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.nomagic.magicdraw</groupId>
             <artifactId>foundation_md</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${magicdraw.install.dir}/lib/com.nomagic.magicdraw.foundation-2022.2.0-168-7c289b26.jar</systemPath>
+            <systemPath>${magicdraw.install.dir}/lib/com.nomagic.magicdraw.foundation-2024.3.0-55-260588bf.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.dassault_systemes.modeler</groupId>
             <artifactId>foundation</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${magicdraw.install.dir}/lib/com.dassault_systemes.modeler.foundation-2022.2.0-168-7c289b26.jar</systemPath>
+            <systemPath>${magicdraw.install.dir}/lib/com.dassault_systemes.modeler.foundation-2024.3.0-55-260588bf.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.nomagic.magicdraw</groupId>
             <artifactId>utils_md</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${magicdraw.install.dir}/lib/com.nomagic.utils-2022.2.0-168-7c289b26.jar</systemPath>
+            <systemPath>${magicdraw.install.dir}/lib/com.nomagic.utils-2024.3.0-55-260588bf.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.eclipse.emf</groupId>
@@ -84,7 +78,7 @@
             <artifactId>common</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${magicdraw.install.dir}/lib/org.eclipse.emf.common-2.40.0.jar</systemPath>
+            <systemPath>${magicdraw.install.dir}/lib/org.eclipse.emf.common-2.41.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.omg.mof</groupId>

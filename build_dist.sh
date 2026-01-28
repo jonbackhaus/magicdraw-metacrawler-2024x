@@ -27,12 +27,11 @@ rm -rf "$DIST_DIR"/*
 mkdir -p "$TEMP_DIR/data/resourcemanager"
 mkdir -p "$TEMP_DIR/plugins/$PLUGIN_ID"
 
-# 3. Copy files
+# 3. Copy JAR file
 cp "target/$JAR_NAME" "$TEMP_DIR/plugins/$PLUGIN_ID/"
-cp "src/main/resources/plugin.xml" "$TEMP_DIR/plugins/$PLUGIN_ID/"
 
 # 4. Generate Plugin Descriptor
-cat <<EOF > "$TEMP_DIR/plugins/plugin.xml"
+cat <<EOF > "$TEMP_DIR/plugins/$PLUGIN_ID/plugin.xml"
 <plugin
         id="$PLUGIN_ID"
         name="Metacrawler Plugin"

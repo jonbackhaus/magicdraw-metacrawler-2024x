@@ -46,7 +46,8 @@ public class MetacrawlerService {
             propertyCategory.setNested(true);
 
             for (Element target : targets) {
-                String targetLabel = RepresentationTextCreator.getRepresentedText(target);
+                String targetLabel = RepresentationTextCreator.getRepresentedText(target)
+                        + " [" + target.getHumanType() + "]";
 
                 // Add action to select this target
                 propertyCategory.addAction(new MetacrawlerAction(target, targetLabel));

@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 MagicDraw Metacrawler is a Java plugin for MagicDraw 2024x that adds a context menu for metachain crawling in the containment browser. When users right-click an element, the plugin shows all metamodel properties and their target elements, allowing navigation through the model.
@@ -12,7 +10,7 @@ MagicDraw Metacrawler is a Java plugin for MagicDraw 2024x that adds a context m
 # Build the plugin JAR
 mvn clean package
 
-# Build distribution bundle (JAR + plugin.xml + resource descriptor ZIP)
+# Build distribution bundle (generates plugin.xml + resource descriptor, bundles into ZIP)
 bash build_dist.sh
 ```
 
@@ -34,7 +32,17 @@ Data flow: User right-clicks → `MetacrawlerMenuConfigurator.configure()` → `
 
 ## Critical Implementation Detail
 
-MagicDraw's JMI collections are "live" and can change in background threads. Always use `.toArray()` to snapshot collections before iteration to avoid `ConcurrentModificationException`. See `MetacrawlerService.java:119-123`.
+MagicDraw's JMI collections are "live" and can change in background threads. Always use `.toArray()` to snapshot collections before iteration to avoid `ConcurrentModificationException`. See `MetacrawlerService.java:120-124`.
+
+## Installation
+
+To test the plugin, unzip the distribution bundle into your MagicDraw installation directory:
+
+```bash
+unzip dist/metacrawler-plugin-v1.0.0.zip -d "/Applications/MagicDraw 2024xR3"
+```
+
+Then restart MagicDraw. The plugin registers automatically on startup.
 
 ## Dependencies
 
